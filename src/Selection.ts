@@ -1,8 +1,13 @@
-import { SelectionRange, SelectionType } from "./types.js";
+// import { SelectionRange, SelectionType } from "./types.js";
 
 export class SelectionManager {
-    public type: SelectionType = 'NONE';
-    public range: SelectionRange | null = null;
+    public type: 'NONE' | 'CELL_RANGE' | 'ROW' | 'COLUMN' = 'NONE';
+    public range: {
+        startRow: number;
+        startCol: number;
+        endRow: number;
+        endCol: number;
+    } | null = null;
 
     public setCellRange(startRow: number, startCol: number, endRow: number, endCol: number): void {
         this.type = 'CELL_RANGE';
