@@ -33,7 +33,7 @@ rm -rf dist ;
 npx tsc ; 
 npx esbuild dist/Grid.js --bundle --outfile=dist/bundle.js ;
 
-rmmdir dist ;
+rmdir dist ;
 npx tsc ; 
 npx esbuild dist/Grid.js --bundle --outfile=dist/bundle.js ;
 ```
