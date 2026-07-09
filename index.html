@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Grid View</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            border: 5px solid black;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            display: block;
+            flex-grow: 1; /* Allows the item to grow and fill available space. */
+        }
+
+        #statusBar {
+            height: 25px;
+            background-color: #107c41;
+            color: #ffffff;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 20px;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #statusBar span b {
+            color: #d4fcd4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="excelCanvas"></canvas>
+    <div id="statusBar">Ready</div>
+
+    <script src="./dist/bundle.js"></script>
+</body>
+
+</html>
