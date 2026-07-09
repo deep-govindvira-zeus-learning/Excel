@@ -1,3 +1,4 @@
+import { RECORDS } from "./Constants.js";
 import { CellData } from "./types.js";
 
 export class DataStore {
@@ -15,7 +16,7 @@ export class DataStore {
         const lastNames = ["Solanki", "Shah", "Sharma", "Patel", "Verma", "Mehta", "Joshi"];
         const records: CellData[] = [];
 
-        for (let i = 1; i <= 50000; i++) {
+        for (let i = 1; i <= RECORDS; i++) {
             const record: CellData = {
                 id: i,
                 firstName: firstNames[i % firstNames.length],
