@@ -1,4 +1,4 @@
-import { RECORDS } from "./Constants.js";
+import { MAX_COLS, RECORDS } from "./Constants.js";
 import { CellData } from "./types.js";
 
 export class DataStore {
@@ -6,7 +6,7 @@ export class DataStore {
     public colKeys: string[] = ["id", "firstName", "lastName", "Age", "Salary"];
 
     constructor() {
-        for (let i = 5; i < 500; i++) {
+        for (let i = 5; i < MAX_COLS; i++) {
             this.colKeys.push(`CustomCol_${i}`);
         }
     }
