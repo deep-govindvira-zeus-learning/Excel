@@ -68,11 +68,11 @@ export class Renderer {
                     ctx.textAlign = isNaN(Number(val)) ? "left" : "right";
                     const txtX = isNaN(Number(val)) ? currentX + 4 : currentX + colW - 4;
                     ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(currentX, currentY, colW, rowH);
-                    ctx.clip();
-                    ctx.fillText(val, txtX, currentY + rowH / 2);
-                    ctx.restore();
+                    ctx.beginPath(); // to define new shape
+                    ctx.rect(currentX, currentY, colW, rowH); // create invisible empty box
+                    ctx.clip(); // draw only inside box, this is permenet so must be restore by using ctx.restore().
+                    ctx.fillText(val, txtX, currentY + rowH / 2); // draw
+                    ctx.restore(); // go back to previous save
                 }
                 currentX += colW;
             }
