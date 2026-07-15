@@ -65,6 +65,39 @@ export class ScrollManager {
         this.lastMouseY = y;
     }
 
+    // to update scrollbar when cell goes out of screen
+    public ensureCellVisible(row: number, col: number): void {
+        const dims = this.grid.dimensions;
+        const viewW = window.innerWidth;
+        const viewH = window.innerHeight - 25;
+
+        const cellX = dims.getColX(col);
+        const cellW = dims.colWidths[col];
+        const cellY = dims.getRowY(row);
+        const cellH = dims.rowHeights[row];
+
+        const viewLeft = dims.headerColWidth + this.scrollX;
+        const viewRight = (viewW - this.scrollbarThickness) + this.scrollX;
+        const viewTop = dims.headerRowHeight + this.scrollY;
+        const viewBottom = (viewH - this.scrollbarThickness) + this.scrollY;
+
+        if (cellX < viewLeft) {
+            this.scrollX = cellX - dims.headerColWidth;
+        } else if (cellX + cellW > viewRight) {
+            this.scrollX = (cellX + cellW) - (viewW - this.scrollbarThickness);
+        }
+
+        if (cellY < viewTop) {
+            this.scrollY = cellY - dims.headerRowHeight;
+        } else if (cellY + cellH > viewBottom) {
+            this.scrollY = (cellY + cellH) - (viewH - this.scrollbarThickness);
+        }
+
+        this.scrollX = Math.max(0, this.scrollX);
+        this.scrollY = Math.max(0, this.scrollY);
+        this.clampScrollBounds();
+    }
+
     public startAutoScrollLoop(): void {
         if (this.autoScrollAnimationId) return;
 
@@ -107,7 +140,7 @@ export class ScrollManager {
                 const currCol = this.grid.dimensions.getColAtX(gridX);
 
                 if (currRow !== -1 && currCol !== -1) {
-                    this.grid.selection.setCellRange(this.grid.interaction.targetIndex, this.grid.interaction.startMouseX, currRow, currCol);
+                    this.grid.selection.extendTo(currRow, currCol);
                 }
                 this.grid.render();
             }

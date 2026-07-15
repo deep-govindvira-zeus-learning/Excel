@@ -37,8 +37,22 @@ export class EditManager {
                 e.stopPropagation();
                 return;
             }
-            if (e.key === 'Enter') this.commitCellEdit();
-            if (e.key === 'Escape') this.cancelCellEdit();
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.commitCellEdit();
+                this.grid.moveActiveCell(1, 0, false);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.cancelCellEdit();
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.commitCellEdit();
+                this.grid.moveActiveCell(0, e.shiftKey ? -1 : 1, false);
+            }
         });
     }
 

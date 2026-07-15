@@ -134,7 +134,7 @@ export class ExcelGrid {
                 this.interaction = { mode: 'SELECTING', targetIndex: targetRow, startMouseX: targetCol, startMouseY: mouseY, startSize: 0 };
 
                 this.scrollManager.updateMousePosition(mouseX, mouseY);
-                this.selection.setCellRange(targetRow, targetCol, targetRow, targetCol);
+                this.selection.setActiveCell(targetRow, targetCol);
                 this.scrollManager.startAutoScrollLoop();
                 this.render();
             }
@@ -188,7 +188,7 @@ export class ExcelGrid {
                 const currRow = this.dimensions.getRowAtY(gridY);
                 const currCol = this.dimensions.getColAtX(gridX);
                 if (currRow !== -1 && currCol !== -1) {
-                    this.selection.setCellRange(this.interaction.targetIndex, this.interaction.startMouseX, currRow, currCol);
+                    this.selection.extendTo(currRow, currCol);
                     this.render();
                 }
             }
@@ -218,16 +218,73 @@ export class ExcelGrid {
             const mouseY = e.clientY - rect.top;
             const r = this.dimensions.getRowAtY(mouseY + this.scrollManager.scrollY);
             const c = this.dimensions.getColAtX(mouseX + this.scrollManager.scrollX);
-            if (r !== -1 && c !== -1) this.editManager.startCellEdit(r, c);
+            if (r !== -1 && c !== -1) {
+                this.selection.setActiveCell(r, c);
+                this.editManager.startCellEdit(r, c);
+            }
         });
     }
 
     private initKeyboardEvents(): void {
         window.addEventListener('keydown', (e) => {
             if (this.editManager.hasActiveEditCell()) return;
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); this.history.undo(); }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); this.history.redo(); }
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); this.history.undo(); return; }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); this.history.redo(); return; }
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.moveActiveCell(-1, 0, e.shiftKey);
+                    return;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.moveActiveCell(1, 0, e.shiftKey);
+                    return;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.moveActiveCell(0, -1, e.shiftKey);
+                    return;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.moveActiveCell(0, 1, e.shiftKey);
+                    return;
+                case 'Tab':
+                    // Tab / Shift+Tab move active cell right.
+                    e.preventDefault();
+                    this.moveActiveCell(0, e.shiftKey ? -1 : 1, false);
+                    return;
+                case 'Enter':
+                    // down .
+                    e.preventDefault();
+                    this.moveActiveCell(1, 0, false);
+                    return;
+                case 'Escape':
+                    // make one active cell.
+                    e.preventDefault();
+                    this.selection.setActiveCell(this.selection.activeRow, this.selection.activeCol);
+                    this.render();
+                    return;
+            }
         });
+    }
+    
+    public moveActiveCell(deltaRow: number, deltaCol: number, extend: boolean): void {
+        const maxRow = this.dimensions.rowHeights.length - 1;
+        const maxCol = this.dimensions.colWidths.length - 1;
+
+        const newRow = Math.min(Math.max(this.selection.activeRow + deltaRow, 0), maxRow);
+        const newCol = Math.min(Math.max(this.selection.activeCol + deltaCol, 0), maxCol);
+
+        if (extend) {
+            this.selection.extendTo(newRow, newCol);
+        } else {
+            this.selection.setActiveCell(newRow, newCol);
+        }
+
+        this.scrollManager.ensureCellVisible(newRow, newCol);
+        if (this.editManager.hasActiveEditCell()) this.editManager.updateInlineInputPosition();
+        this.render();
     }
 
     private getColResizeTarget(x: number, y: number): number {
