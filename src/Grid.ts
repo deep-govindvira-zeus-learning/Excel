@@ -77,7 +77,7 @@ export class ExcelGrid {
     }
 
     private initMouseEvents(): void {
-        this.canvas.addEventListener('mousedown', (e) => {
+        this.canvas.addEventListener('pointerdown', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -194,7 +194,7 @@ export class ExcelGrid {
             }
         });
 
-        window.addEventListener('mouseup', () => {
+        window.addEventListener('pointerup', () => {
             this.scrollManager.stopAutoScrollLoop();
             if (this.interaction.mode === 'RESIZING_COL') {
                 const idx = this.interaction.targetIndex;
