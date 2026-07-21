@@ -111,3 +111,16 @@ export class SelectingInteractionMode extends InteractionMode {
         }
     }
 }
+
+
+export class InteractionModeHandler {
+    constructor(public mode: InteractionMode) {}
+
+    public onPointerMove() {
+        this.mode.onPointerMove();
+    }
+
+    public onPointerUp(): void {
+        this.mode.onPointerUp();
+    }
+}

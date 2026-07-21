@@ -6,7 +6,7 @@ import { ScrollManager } from "./ScrollManager.js";
 import { EditManager } from "./EditManager.js";
 import { Renderer } from "./Renderer.js";
 import { MAX_COLS, MAX_ROWS } from "./Constants.js";
-import { DraggingHScrollInteractionMode, DraggingVScrollInteractionMode, InteractionMode, NoneInteractionMode, ResizingColInteractionMode, ResizingRowInteractionMode, SelectingInteractionMode } from "./InteractionMode.js";
+import { DraggingHScrollInteractionMode, DraggingVScrollInteractionMode, InteractionMode, InteractionModeHandler, NoneInteractionMode, ResizingColInteractionMode, ResizingRowInteractionMode, SelectingInteractionMode } from "./InteractionMode.js";
 
 export class ExcelGrid {
     private canvas: HTMLCanvasElement;
@@ -146,8 +146,10 @@ export class ExcelGrid {
             
             this.interaction.mode.mouseX =  e.clientX - rect.left;;
             this.interaction.mode.mouseY =  e.clientY - rect.top;
+            
+            const interactionModeHandler = new InteractionModeHandler(this.interaction.mode);
+            interactionModeHandler.onPointerMove();
 
-            this.interaction.mode.onPointerMove();
             // mode.perform();
 
             // if (this.interaction.mode === 'NONE') {
@@ -197,7 +199,10 @@ export class ExcelGrid {
 
         window.addEventListener('pointerup', () => {
             this.scrollManager.stopAutoScrollLoop();
-            this.interaction.mode.onPointerUp();
+
+            const interactionModeHandler = new InteractionModeHandler(this.interaction.mode);
+            interactionModeHandler.onPointerUp();
+
             // if (this.interaction.mode instanceof ResizingColInteractionMode) {
             //     const idx = this.interaction.targetIndex;
             //     const finalSize = this.dimensions.colWidths[idx];
