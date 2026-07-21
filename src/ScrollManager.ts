@@ -1,5 +1,6 @@
 import { ExcelGrid } from "./Grid.js";
 import { SelectingInteractionMode } from "./InteractionMode.js";
+import type { ScrollbarMetrics } from "./types.js";
 
 export class ScrollManager {
     private grid: ExcelGrid;
@@ -39,7 +40,7 @@ export class ScrollManager {
         }, { passive: false });
     }
 
-    public getScrollbarMetrics() {
+    public getScrollbarMetrics() : ScrollbarMetrics {
         const viewW = window.innerWidth;
         const viewH = window.innerHeight - 25;
         const dims = this.grid.dimensions;

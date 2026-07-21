@@ -7,10 +7,14 @@ import { EditManager } from "./EditManager.js";
 import { Renderer } from "./Renderer.js";
 import { MAX_COLS, MAX_ROWS } from "./Constants.js";
 import { DraggingHScrollInteractionMode, DraggingVScrollInteractionMode, InteractionMode, InteractionModeHandler, NoneInteractionMode, ResizingColInteractionMode, ResizingRowInteractionMode, SelectingInteractionMode } from "./InteractionMode.js";
+import type { PointerEventContext, ScrollbarMetrics } from "./types.js";
+import { HitTestPipeline } from "./HitTester.js";
+
 
 export class ExcelGrid {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
+    private hitTestPipeline: HitTestPipeline;
 
     public dimensions: DimensionManager;
     public dataStore: DataStore;
@@ -27,6 +31,7 @@ export class ExcelGrid {
     public totalHeight: number = 0;
 
     constructor(canvasId: string) {
+        this.hitTestPipeline = new HitTestPipeline(this);
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
         this.ctx = this.canvas.getContext("2d")!;
 
@@ -78,75 +83,30 @@ export class ExcelGrid {
     }
 
     private initMouseEvents(): void {
-        this.canvas.addEventListener('pointerdown', (e) => {
+        this.canvas.addEventListener('pointerdown', (e: PointerEvent) => {
             const rect = this.canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-            const viewW = window.innerWidth;
-            const viewH = window.innerHeight - 25;
 
-            const metrics = this.scrollManager.getScrollbarMetrics();
+            const context: PointerEventContext = {
+                mouseX,
+                mouseY,
+                viewW: window.innerWidth,
+                viewH: window.innerHeight - 25,
+                gridX: mouseX + this.scrollManager.scrollX,
+                gridY: mouseY + this.scrollManager.scrollY,
+                metrics: this.scrollManager.getScrollbarMetrics()
+            };
 
-            if (mouseX >= viewW - this.scrollManager.scrollbarThickness && mouseY >= metrics.vTrackY && mouseY <= viewH - this.scrollManager.scrollbarThickness) {
-                if (mouseY >= metrics.vThumbY && mouseY <= metrics.vThumbY + metrics.vThumbH) {
-                    this.interaction = { mode: new DraggingVScrollInteractionMode(this), targetIndex: -1, startMouseX: mouseX, startMouseY: mouseY - metrics.vThumbY, startSize: this.scrollManager.scrollY };
-                }
-                return;
-            }
-
-            if (mouseY >= viewH - this.scrollManager.scrollbarThickness && mouseX >= metrics.hTrackX && mouseX <= viewW - this.scrollManager.scrollbarThickness) {
-                if (mouseX >= metrics.hThumbX && mouseX <= metrics.hThumbX + metrics.hThumbW) {
-                    this.interaction = { mode: new DraggingHScrollInteractionMode(this), targetIndex: -1, startMouseX: mouseX - metrics.hThumbX, startMouseY: mouseY, startSize: this.scrollManager.scrollX };
-                }
-                return;
-            }
-
-            const gridX = mouseX + this.scrollManager.scrollX;
-            const gridY = mouseY + this.scrollManager.scrollY;
-
-            const colResizeIndex = this.getColResizeTarget(mouseX, mouseY);
-            if (colResizeIndex !== -1) {
-                this.interaction = { mode: new ResizingColInteractionMode(this), targetIndex: colResizeIndex, startMouseX: mouseX, startMouseY: mouseY, startSize: this.dimensions.colWidths[colResizeIndex] };
-                return;
-            }
-
-            const rowResizeIndex = this.getRowResizeTarget(mouseX, mouseY);
-            if (rowResizeIndex !== -1) {
-                this.interaction = { mode: new ResizingRowInteractionMode(this), targetIndex: rowResizeIndex, startMouseX: mouseX, startMouseY: mouseY, startSize: this.dimensions.rowHeights[rowResizeIndex] };
-                return;
-            }
-
-            if (mouseY < this.dimensions.headerRowHeight && mouseX > this.dimensions.headerColWidth) {
-                const col = this.dimensions.getColAtX(gridX);
-                if (col !== -1) this.selection.setColumnSelection(col);
-                this.render();
-                return;
-            }
-            if (mouseX < this.dimensions.headerColWidth && mouseY > this.dimensions.headerRowHeight) {
-                const row = this.dimensions.getRowAtY(gridY);
-                if (row !== -1) this.selection.setRowSelection(row);
-                this.render();
-                return;
-            }
-
-            const targetRow = this.dimensions.getRowAtY(gridY);
-            const targetCol = this.dimensions.getColAtX(gridX);
-            if (targetRow !== -1 && targetCol !== -1) {
-                this.interaction = { mode: new SelectingInteractionMode(this), targetIndex: targetRow, startMouseX: targetCol, startMouseY: mouseY, startSize: 0 };
-
-                this.scrollManager.updateMousePosition(mouseX, mouseY);
-                this.selection.setActiveCell(targetRow, targetCol);
-                this.scrollManager.startAutoScrollLoop();
-                this.render();
-            }
+            this.hitTestPipeline.handlePointerDown(context);
         });
 
         this.canvas.addEventListener('pointermove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
-            
-            this.interaction.mode.mouseX =  e.clientX - rect.left;;
-            this.interaction.mode.mouseY =  e.clientY - rect.top;
-            
+
+            this.interaction.mode.mouseX = e.clientX - rect.left;;
+            this.interaction.mode.mouseY = e.clientY - rect.top;
+
             const interactionModeHandler = new InteractionModeHandler(this.interaction.mode);
             interactionModeHandler.onPointerMove();
 
@@ -275,7 +235,7 @@ export class ExcelGrid {
             }
         });
     }
-    
+
     public moveActiveCell(deltaRow: number, deltaCol: number, extend: boolean): void {
         const maxRow = this.dimensions.rowHeights.length - 1;
         const maxCol = this.dimensions.colWidths.length - 1;
