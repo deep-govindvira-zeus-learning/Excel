@@ -1,4 +1,5 @@
 import { ExcelGrid } from "./Grid.js";
+import { SelectingInteractionMode } from "./InteractionMode.js";
 
 export class ScrollManager {
     private grid: ExcelGrid;
@@ -102,7 +103,7 @@ export class ScrollManager {
         if (this.autoScrollAnimationId) return;
 
         const loop = () => {
-            if (this.grid.interaction.mode !== 'SELECTING') {
+            if (!(this.grid.interaction.mode instanceof SelectingInteractionMode)) {
                 this.stopAutoScrollLoop();
                 return;
             }

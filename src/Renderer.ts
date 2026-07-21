@@ -1,4 +1,5 @@
 import { ExcelGrid } from "./Grid.js";
+import { DraggingHScrollInteractionMode, DraggingVScrollInteractionMode } from "./InteractionMode.js";
 
 export class Renderer {
     private grid: ExcelGrid;
@@ -139,13 +140,15 @@ export class Renderer {
 
         // Vertical
         ctx.fillRect(viewW - scrollMgr.scrollbarThickness, scrollMetrics.vTrackY, scrollMgr.scrollbarThickness, scrollMetrics.vTrackH);
-        ctx.fillStyle = this.grid.interaction.mode === 'DRAGGING_V_SCROLL' ? "#787878" : "#c1c1c1";
+        ctx.fillStyle = this.grid.interaction.mode instanceof DraggingVScrollInteractionMode ? "#787878" : "#c1c1c1";
+        // ctx.fillStyle = this.grid.interaction.mode === 'DRAGGING_V_SCROLL' ? "#787878" : "#c1c1c1";
         ctx.fillRect(viewW - scrollMgr.scrollbarThickness + 2, scrollMetrics.vThumbY, scrollMgr.scrollbarThickness - 4, scrollMetrics.vThumbH);
 
         // Horizontal
         ctx.fillStyle = "#f0f0f0";
         ctx.fillRect(scrollMetrics.hTrackX, viewH - scrollMgr.scrollbarThickness, scrollMetrics.hTrackW, scrollMgr.scrollbarThickness);
-        ctx.fillStyle = this.grid.interaction.mode === 'DRAGGING_H_SCROLL' ? "#787878" : "#c1c1c1";
+        ctx.fillStyle = this.grid.interaction.mode instanceof DraggingHScrollInteractionMode ? "#787878" : "#c1c1c1";
+        // ctx.fillStyle = this.grid.interaction.mode === 'DRAGGING_H_SCROLL' ? "#787878" : "#c1c1c1";
         ctx.fillRect(scrollMetrics.hThumbX, viewH - scrollMgr.scrollbarThickness + 2, scrollMetrics.hThumbW, scrollMgr.scrollbarThickness - 4);
 
         // Corner Gap

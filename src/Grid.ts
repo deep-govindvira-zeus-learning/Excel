@@ -6,6 +6,7 @@ import { ScrollManager } from "./ScrollManager.js";
 import { EditManager } from "./EditManager.js";
 import { Renderer } from "./Renderer.js";
 import { MAX_COLS, MAX_ROWS } from "./Constants.js";
+import { DraggingHScrollInteractionMode, DraggingVScrollInteractionMode, InteractionMode, NoneInteractionMode, ResizingColInteractionMode, ResizingRowInteractionMode, SelectingInteractionMode } from "./InteractionMode.js";
 
 export class ExcelGrid {
     private canvas: HTMLCanvasElement;
@@ -19,8 +20,8 @@ export class ExcelGrid {
     public editManager: EditManager;
     private renderer: Renderer;
 
-    public interaction: { mode: 'NONE' | 'RESIZING_COL' | 'RESIZING_ROW' | 'SELECTING' | 'DRAGGING_V_SCROLL' | 'DRAGGING_H_SCROLL'; targetIndex: number; startMouseX: number; startMouseY: number; startSize: number } =
-        { mode: 'NONE', targetIndex: -1, startMouseX: 0, startMouseY: 0, startSize: 0 };
+    public interaction: { mode: InteractionMode; targetIndex: number; startMouseX: number; startMouseY: number; startSize: number } =
+        { mode: new NoneInteractionMode(this), targetIndex: -1, startMouseX: 0, startMouseY: 0, startSize: 0 };
 
     public totalWidth: number = 0;
     public totalHeight: number = 0;
@@ -88,14 +89,14 @@ export class ExcelGrid {
 
             if (mouseX >= viewW - this.scrollManager.scrollbarThickness && mouseY >= metrics.vTrackY && mouseY <= viewH - this.scrollManager.scrollbarThickness) {
                 if (mouseY >= metrics.vThumbY && mouseY <= metrics.vThumbY + metrics.vThumbH) {
-                    this.interaction = { mode: 'DRAGGING_V_SCROLL', targetIndex: -1, startMouseX: mouseX, startMouseY: mouseY - metrics.vThumbY, startSize: this.scrollManager.scrollY };
+                    this.interaction = { mode: new DraggingVScrollInteractionMode(this), targetIndex: -1, startMouseX: mouseX, startMouseY: mouseY - metrics.vThumbY, startSize: this.scrollManager.scrollY };
                 }
                 return;
             }
 
             if (mouseY >= viewH - this.scrollManager.scrollbarThickness && mouseX >= metrics.hTrackX && mouseX <= viewW - this.scrollManager.scrollbarThickness) {
                 if (mouseX >= metrics.hThumbX && mouseX <= metrics.hThumbX + metrics.hThumbW) {
-                    this.interaction = { mode: 'DRAGGING_H_SCROLL', targetIndex: -1, startMouseX: mouseX - metrics.hThumbX, startMouseY: mouseY, startSize: this.scrollManager.scrollX };
+                    this.interaction = { mode: new DraggingHScrollInteractionMode(this), targetIndex: -1, startMouseX: mouseX - metrics.hThumbX, startMouseY: mouseY, startSize: this.scrollManager.scrollX };
                 }
                 return;
             }
@@ -105,13 +106,13 @@ export class ExcelGrid {
 
             const colResizeIndex = this.getColResizeTarget(mouseX, mouseY);
             if (colResizeIndex !== -1) {
-                this.interaction = { mode: 'RESIZING_COL', targetIndex: colResizeIndex, startMouseX: mouseX, startMouseY: mouseY, startSize: this.dimensions.colWidths[colResizeIndex] };
+                this.interaction = { mode: new ResizingColInteractionMode(this), targetIndex: colResizeIndex, startMouseX: mouseX, startMouseY: mouseY, startSize: this.dimensions.colWidths[colResizeIndex] };
                 return;
             }
 
             const rowResizeIndex = this.getRowResizeTarget(mouseX, mouseY);
             if (rowResizeIndex !== -1) {
-                this.interaction = { mode: 'RESIZING_ROW', targetIndex: rowResizeIndex, startMouseX: mouseX, startMouseY: mouseY, startSize: this.dimensions.rowHeights[rowResizeIndex] };
+                this.interaction = { mode: new ResizingRowInteractionMode(this), targetIndex: rowResizeIndex, startMouseX: mouseX, startMouseY: mouseY, startSize: this.dimensions.rowHeights[rowResizeIndex] };
                 return;
             }
 
@@ -131,7 +132,7 @@ export class ExcelGrid {
             const targetRow = this.dimensions.getRowAtY(gridY);
             const targetCol = this.dimensions.getColAtX(gridX);
             if (targetRow !== -1 && targetCol !== -1) {
-                this.interaction = { mode: 'SELECTING', targetIndex: targetRow, startMouseX: targetCol, startMouseY: mouseY, startSize: 0 };
+                this.interaction = { mode: new SelectingInteractionMode(this), targetIndex: targetRow, startMouseX: targetCol, startMouseY: mouseY, startSize: 0 };
 
                 this.scrollManager.updateMousePosition(mouseX, mouseY);
                 this.selection.setActiveCell(targetRow, targetCol);
@@ -142,74 +143,75 @@ export class ExcelGrid {
 
         this.canvas.addEventListener('pointermove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            const metrics = this.scrollManager.getScrollbarMetrics();
+            
+            this.interaction.mode.mouseX =  e.clientX - rect.left;;
+            this.interaction.mode.mouseY =  e.clientY - rect.top;
 
-            const gridX = mouseX + this.scrollManager.scrollX;
-            const gridY = mouseY + this.scrollManager.scrollY;
+            this.interaction.mode.onPointerMove();
+            // mode.perform();
 
-            if (this.interaction.mode === 'NONE') {
-                if (this.getColResizeTarget(mouseX, mouseY) !== -1) this.canvas.style.cursor = 'col-resize';
-                else if (this.getRowResizeTarget(mouseX, mouseY) !== -1) this.canvas.style.cursor = 'row-resize';
-                else this.canvas.style.cursor = 'default';
-            }
+            // if (this.interaction.mode === 'NONE') {
+            //     if (this.getColResizeTarget(mouseX, mouseY) !== -1) this.canvas.style.cursor = 'col-resize';
+            //     else if (this.getRowResizeTarget(mouseX, mouseY) !== -1) this.canvas.style.cursor = 'row-resize';
+            //     else this.canvas.style.cursor = 'default';
+            // }
 
-            if (this.interaction.mode === 'DRAGGING_V_SCROLL') {
-                const deltaY = mouseY - metrics.vTrackY - this.interaction.startMouseY;
-                const trackRange = metrics.vTrackH - metrics.vThumbH;
-                this.scrollManager.scrollY = Math.max(0, Math.min(metrics.maxScrollY, (deltaY / trackRange) * metrics.maxScrollY));
-                if (this.editManager.hasActiveEditCell()) this.editManager.updateInlineInputPosition();
-                this.render();
-                return;
-            }
+            // if (this.interaction.mode === 'DRAGGING_V_SCROLL') {
+            //     const deltaY = mouseY - metrics.vTrackY - this.interaction.startMouseY;
+            //     const trackRange = metrics.vTrackH - metrics.vThumbH;
+            //     this.scrollManager.scrollY = Math.max(0, Math.min(metrics.maxScrollY, (deltaY / trackRange) * metrics.maxScrollY));
+            //     if (this.editManager.hasActiveEditCell()) this.editManager.updateInlineInputPosition();
+            //     this.render();
+            //     return;
+            // }
 
-            if (this.interaction.mode === 'DRAGGING_H_SCROLL') {
-                const deltaX = mouseX - metrics.hTrackX - this.interaction.startMouseX;
-                const trackRange = metrics.hTrackW - metrics.hThumbW;
-                this.scrollManager.scrollX = Math.max(0, Math.min(metrics.maxScrollX, (deltaX / trackRange) * metrics.maxScrollX));
-                if (this.editManager.hasActiveEditCell()) this.editManager.updateInlineInputPosition();
-                this.render();
-                return;
-            }
+            // if (this.interaction.mode === 'DRAGGING_H_SCROLL') {
+            //     const deltaX = mouseX - metrics.hTrackX - this.interaction.startMouseX;
+            //     const trackRange = metrics.hTrackW - metrics.hThumbW;
+            //     this.scrollManager.scrollX = Math.max(0, Math.min(metrics.maxScrollX, (deltaX / trackRange) * metrics.maxScrollX));
+            //     if (this.editManager.hasActiveEditCell()) this.editManager.updateInlineInputPosition();
+            //     this.render();
+            //     return;
+            // }
 
-            if (this.interaction.mode === 'RESIZING_COL') {
-                const deltaX = mouseX - this.interaction.startMouseX;
-                this.dimensions.colWidths[this.interaction.targetIndex] = Math.max(20, this.interaction.startSize + deltaX);
-                this.recalculateTotalContentSizes();
-                this.render();
-            } else if (this.interaction.mode === 'RESIZING_ROW') {
-                const deltaY = mouseY - this.interaction.startMouseY;
-                this.dimensions.rowHeights[this.interaction.targetIndex] = Math.max(15, this.interaction.startSize + deltaY);
-                this.recalculateTotalContentSizes();
-                this.render();
-            } else if (this.interaction.mode === 'SELECTING') {
-                this.scrollManager.updateMousePosition(mouseX, mouseY);
-                const currRow = this.dimensions.getRowAtY(gridY);
-                const currCol = this.dimensions.getColAtX(gridX);
-                if (currRow !== -1 && currCol !== -1) {
-                    this.selection.extendTo(currRow, currCol);
-                    this.render();
-                }
-            }
+            // if (this.interaction.mode === 'RESIZING_COL') {
+            //     const deltaX = mouseX - this.interaction.startMouseX;
+            //     this.dimensions.colWidths[this.interaction.targetIndex] = Math.max(20, this.interaction.startSize + deltaX);
+            //     this.recalculateTotalContentSizes();
+            //     this.render();
+            // } else if (this.interaction.mode === 'RESIZING_ROW') {
+            //     const deltaY = mouseY - this.interaction.startMouseY;
+            //     this.dimensions.rowHeights[this.interaction.targetIndex] = Math.max(15, this.interaction.startSize + deltaY);
+            //     this.recalculateTotalContentSizes();
+            //     this.render();
+            // } else if (this.interaction.mode === 'SELECTING') {
+            //     this.scrollManager.updateMousePosition(mouseX, mouseY);
+            //     const currRow = this.dimensions.getRowAtY(gridY);
+            //     const currCol = this.dimensions.getColAtX(gridX);
+            //     if (currRow !== -1 && currCol !== -1) {
+            //         this.selection.extendTo(currRow, currCol);
+            //         this.render();
+            //     }
+            // }
         });
 
         window.addEventListener('pointerup', () => {
             this.scrollManager.stopAutoScrollLoop();
-            if (this.interaction.mode === 'RESIZING_COL') {
-                const idx = this.interaction.targetIndex;
-                const finalSize = this.dimensions.colWidths[idx];
-                this.dimensions.colWidths[idx] = this.interaction.startSize;
-                this.history.executeCommand(new ResizeCommand(this, 'COL', idx, this.interaction.startSize, finalSize));
-                this.recalculateTotalContentSizes();
-            } else if (this.interaction.mode === 'RESIZING_ROW') {
-                const idx = this.interaction.targetIndex;
-                const finalSize = this.dimensions.rowHeights[idx];
-                this.dimensions.rowHeights[idx] = this.interaction.startSize;
-                this.history.executeCommand(new ResizeCommand(this, 'ROW', idx, this.interaction.startSize, finalSize));
-                this.recalculateTotalContentSizes();
-            }
-            this.interaction.mode = 'NONE';
+            this.interaction.mode.onPointerUp();
+            // if (this.interaction.mode instanceof ResizingColInteractionMode) {
+            //     const idx = this.interaction.targetIndex;
+            //     const finalSize = this.dimensions.colWidths[idx];
+            //     this.dimensions.colWidths[idx] = this.interaction.startSize;
+            //     this.history.executeCommand(new ResizeCommand(this, 'COL', idx, this.interaction.startSize, finalSize));
+            //     this.recalculateTotalContentSizes();
+            // } else if (this.interaction.mode instanceof ResizingRowInteractionMode) {
+            //     const idx = this.interaction.targetIndex;
+            //     const finalSize = this.dimensions.rowHeights[idx];
+            //     this.dimensions.rowHeights[idx] = this.interaction.startSize;
+            //     this.history.executeCommand(new ResizeCommand(this, 'ROW', idx, this.interaction.startSize, finalSize));
+            //     this.recalculateTotalContentSizes();
+            // }
+            this.interaction.mode = new NoneInteractionMode(this);
         });
 
         this.canvas.addEventListener('dblclick', (e) => {
@@ -287,7 +289,7 @@ export class ExcelGrid {
         this.render();
     }
 
-    private getColResizeTarget(x: number, y: number): number {
+    public getColResizeTarget(x: number, y: number): number {
         if (y > this.dimensions.headerRowHeight) return -1;
         let currentX = this.dimensions.headerColWidth - this.scrollManager.scrollX;
         for (let i = 0; i < this.dimensions.colWidths.length; i++) {
@@ -297,7 +299,7 @@ export class ExcelGrid {
         return -1;
     }
 
-    private getRowResizeTarget(x: number, y: number): number {
+    public getRowResizeTarget(x: number, y: number): number {
         if (x > this.dimensions.headerColWidth) return -1;
         let currentY = this.dimensions.headerRowHeight - this.scrollManager.scrollY;
         for (let i = 0; i < this.dimensions.rowHeights.length; i++) {
