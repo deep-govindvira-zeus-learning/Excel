@@ -1,3 +1,4 @@
+import type { ExcelGrid } from "./Grid";
 import { DraggingHScrollInteractionMode, DraggingVScrollInteractionMode, ResizingColInteractionMode, ResizingRowInteractionMode, SelectingInteractionMode } from "./InteractionMode";
 import type { PointerEventContext } from "./types";
 
@@ -8,7 +9,7 @@ export interface IHitTester {
 export class HitTestPipeline {
     private testers: IHitTester[];
 
-    constructor(grid: any) {
+    constructor(grid: ExcelGrid) {
         this.testers = [
             new VScrollHitTester(grid),
             new HScrollHitTester(grid),
@@ -31,7 +32,7 @@ export class HitTestPipeline {
 }
 
 export class VScrollHitTester implements IHitTester {
-    constructor(private grid: any) { } // Replace 'any' with your Grid component class
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY, viewW, metrics }: PointerEventContext): boolean {
         const isOverVTrack = mouseX >= viewW - this.grid.scrollManager.scrollbarThickness &&
@@ -55,7 +56,7 @@ export class VScrollHitTester implements IHitTester {
 }
 
 export class HScrollHitTester implements IHitTester {
-    constructor(private grid: any) { }
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY, viewH, metrics }: PointerEventContext): boolean {
         const isOverHTrack = mouseY >= viewH - this.grid.scrollManager.scrollbarThickness &&
@@ -79,7 +80,7 @@ export class HScrollHitTester implements IHitTester {
 }
 
 export class ColResizeHitTester implements IHitTester {
-    constructor(private grid: any) { }
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY }: PointerEventContext): boolean {
         const colResizeIndex = this.grid.getColResizeTarget(mouseX, mouseY);
@@ -97,7 +98,7 @@ export class ColResizeHitTester implements IHitTester {
 }
 
 export class RowResizeHitTester implements IHitTester {
-    constructor(private grid: any) { }
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY }: PointerEventContext): boolean {
         const rowResizeIndex = this.grid.getRowResizeTarget(mouseX, mouseY);
@@ -115,7 +116,7 @@ export class RowResizeHitTester implements IHitTester {
 }
 
 export class ColHeaderHitTester implements IHitTester {
-    constructor(private grid: any) { }
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY, gridX }: PointerEventContext): boolean {
         if (mouseY >= this.grid.dimensions.headerRowHeight || mouseX <= this.grid.dimensions.headerColWidth) return false;
@@ -128,7 +129,7 @@ export class ColHeaderHitTester implements IHitTester {
 }
 
 export class RowHeaderHitTester implements IHitTester {
-    constructor(private grid: any) { }
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY, gridY }: PointerEventContext): boolean {
         if (mouseX >= this.grid.dimensions.headerColWidth || mouseY <= this.grid.dimensions.headerRowHeight) return false;
@@ -141,7 +142,7 @@ export class RowHeaderHitTester implements IHitTester {
 }
 
 export class CellSelectHitTester implements IHitTester {
-    constructor(private grid: any) { }
+    constructor(private grid: ExcelGrid) { }
 
     test({ mouseX, mouseY, gridX, gridY }: PointerEventContext): boolean {
         const targetRow = this.grid.dimensions.getRowAtY(gridY);
